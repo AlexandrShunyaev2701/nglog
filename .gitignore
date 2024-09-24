@@ -1,0 +1,5 @@
+servers.json.DS_Store
+.DS_Store
+.env
+.venv
+venv

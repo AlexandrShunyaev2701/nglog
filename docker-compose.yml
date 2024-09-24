@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: trust  # Упрощение аутентификации
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # Поднимаем порт для связи с БД
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      POSTGRES_HOST: ${POSTGRES_HOST}  # Адрес сервиса базы данных
+      POSTGRES_PORT: ${POSTGRES_PORT}  # Порт для подключения
+      POSTGRES_DB: ${POSTGRES_DB}      # Имя базы данных для подключения
+      POSTGRES_USER: ${POSTGRES_USER}  # Имя пользователя для подключения
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Пароль для подключения
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}  # Разрешённые хосты
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
