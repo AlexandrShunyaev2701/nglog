@@ -1,8 +1,7 @@
 import json
 from datetime import datetime
-
-import httpx
 from typing import Optional
+import httpx
 from django.core.management.base import BaseCommand
 from logger.models import NginxLog
 
@@ -15,20 +14,24 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs) -> None:
         """
-        Читаем по строчно файл с логами по ссылке
+        Читаем файл с логами по ссылке построчно и сохраняем записи в базу данных.
         """
         log_file_url = kwargs['log_file_url']
         direct_link = self.convert_google_drive_url(log_file_url)
+        log_entries = []  # Список для накопления записей
+
         try:
             with httpx.stream('GET', direct_link, follow_redirects=True) as response:
                 response.raise_for_status()  # Проверка статуса ответа
 
                 for line in response.iter_lines():
                     if line:
-                        # Отображаем строку для отладки
-                        log_entry = self.process_log_line(line)
+                        log_entry = self.process_log_line(line.decode('utf-8'))  # Обрабатываем строку
                         if log_entry:
-                            log_entry.save()
+                            log_entries.append(log_entry)  # Добавляем запись в список
+
+            # Сохраняем все записи в базу данных одной транзакцией
+            NginxLog.objects.bulk_create(log_entries)
 
             self.stdout.write(self.style.SUCCESS("Парсинг завершён"))
         except httpx.RequestError as e:
@@ -49,7 +52,7 @@ class Command(BaseCommand):
 
     def process_log_line(self, line: str) -> Optional[NginxLog]:
         """
-        Извлекаем данные из строки лога и создаем объект NginxLog
+        Извлекаем данные из строки лога и создаем объект NginxLog.
         """
         try:
             log_data = json.loads(line)
@@ -58,7 +61,7 @@ class Command(BaseCommand):
             uri = request_data[1]
             protocol = request_data[2]
 
-            log_entry: NginxLog = NginxLog(
+            log_entry = NginxLog(
                 ip_address=log_data["remote_ip"],
                 request_date=datetime.strptime(log_data['time'], "%d/%b/%Y:%H:%M:%S %z"),
                 remote_user=log_data.get("remote_user", "-"),
