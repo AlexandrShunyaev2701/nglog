@@ -26,7 +26,7 @@ class Command(BaseCommand):
 
                 for line in response.iter_lines():
                     if line:
-                        log_entry = self.process_log_line(line.decode('utf-8'))  # Обрабатываем строку
+                        log_entry = self.process_log_line(line)  # Обрабатываем строку
                         if log_entry:
                             log_entries.append(log_entry)  # Добавляем запись в список
 
